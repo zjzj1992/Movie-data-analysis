@@ -37,7 +37,7 @@
 # 
 # 提示：记得使用 notebook 中的魔法指令 `%matplotlib inline`，否则会导致你接下来无法打印出图像。
 
-# In[76]:
+# In[192]:
 
 
 #导入所需的库
@@ -67,20 +67,20 @@ movie_data = pd.read_csv('C:/Users/zhang/Desktop/tmdb-movies.csv')
 # 
 # 
 
-# In[77]:
+# In[5]:
 
 
 #数据表的行列
-print(np.shape(movie_data))
+display(np.shape(movie_data))
 
 #获取头几行的数据
-print(movie_data.head())
+display(movie_data.head())
 
 #获取最后几行的数据
-print(movie_data.tail())
+display(movie_data.tail())
 
 #随机获取一些数据
-print(movie_data.sample())
+display(movie_data.sample())
 
 
 # In[78]:
@@ -149,18 +149,10 @@ print("处理之后：\n",movie_data.isnull().sum())
 # 
 # 要求：每一个语句只能用一行代码实现。
 
-# In[82]:
+# In[6]:
 
 
-print("id列的数据：\n",movie_data['id'])
-print("--------------------------")
-print("popilarity列的数据：\n",movie_data['popularity'])
-print("--------------------------")
-print("budget列的数据：\n",movie_data['budget'])
-print("--------------------------")
-print("runtime列的数据：\n",movie_data['budget'])
-print("--------------------------")
-print("vote_average列的数据：\n",movie_data['vote_average'])
+display(movie_data[['id','popularity','budget','runtime','vote_average']])
 
 
 # In[83]:
@@ -249,7 +241,7 @@ movie_data.groupby('director').agg('mean').sort_values(by='popularity',ascending
 
 # **任务3.1：**对 `popularity` 最高的20名电影绘制其 `popularity` 值。
 
-# In[89]:
+# In[8]:
 
 
 #这部分内容是因为在生成图的时候总是出现字体的警告信息，所以查资料解决的方案
@@ -260,13 +252,14 @@ mpl.rcParams['font.family'] = ['serif']
 mpl.rcParams['font.serif'] = ['Times New Roman']
 
 
-# In[90]:
+# In[29]:
 
 
 #按popularity进行降序排列，然后获取前20名
-from matplotlib.font_manager import FontProperties
 top20_popularity = movie_data.sort_values(by='popularity',ascending=False).head(20)
 plt.scatter(data=top20_popularity,x = 'original_title',y = 'popularity');
+plt.xlabel("Movie")
+plt.ylabel("Popularity")
 plt.xticks(rotation=90)
 
 
@@ -275,17 +268,22 @@ plt.xticks(rotation=90)
 # ---
 # **任务3.2：**分析电影净利润（票房-成本）随着年份变化的情况，并简单进行分析。
 
-# In[91]:
+# In[52]:
 
 
+movie_data.sort_values(by='release_year',ascending=True,inplace=True)
+movie_counts = movie_data.release_year.value_counts()
 movie_data_years = movie_data.groupby('release_year').agg('sum')
-movie_data_years['profit'] = movie_data_years['revenue'] - movie_data_years['budget']
+
+
+
+movie_data_years['mean profit'] = (movie_data_years['revenue'] - movie_data_years['budget'])/movie_counts
 release_years = np.arange(1960,2016,1)
-plt.errorbar(data=movie_data_years,x = release_years,y = movie_data_years['profit'])
+plt.errorbar(data=movie_data_years,x = release_years,y = movie_data_years['mean profit'])
 plt.xlim(1960,2020);
+plt.xlabel('years')
+plt.ylabel('Average revenue')
 
-
-# 从1960年到1990年之间，净利润增长不明显，之后从1990年开始，净利润有明显的上升趋势,可能与人们的生活水平提高等因素有关，人们愿意在娱乐上进行消费
 
 # ---
 # 
@@ -338,7 +336,19 @@ for director in top10_directors:
 
 
 #使用箱线图分析数据
-base_color = sb.color_palette()[0]
+base_color = sb.color_palette()[0]tmp = movie_data['director'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('director') 
+movie_data_split = movie_data[['original_title', 'revenue']].join(tmp)
+
+
+target_data = None
+## TODO:  整理target_data,  它有上面提到的三个维度
+
+## 作图, 将导演设为颜色维度hue, 达到分别作图的效果
+fig = plt.figure(figsize=(15, 6)) 
+ax = sb.barplot(data=target_data, x='original_title', y='revenue_adj', hue='director', dodge=False, palette="Set2")
+plt.xticks(rotation = 90)
+plt.ylabel('Revenue')
+plt.xlabel('Original Title')
 sb.boxplot(data = top3_movies,x = 'director',y = 'revenue',color=base_color);
 plt.xticks(rotation=90);
 
@@ -380,9 +390,20 @@ plt.xlim(1968,2020);
 # 
 # **[选做]任务3.5：**分析1968年~2015年六月电影 `Comedy` 和 `Drama` 两类电影的数量的变化。
 
-# In[99]:
+# In[193]:
 
 
+record = []
+counts_comedy = dict()
+counts_drama = dict()
+
+for row in movie_data.index:
+    if movie_data.loc[row]['release_date'].split('/')[0] == '6':
+        record.append(row)
+
+movie_data = movie_data.loc[record]
+df_movies = movie_data.drop('genres', axis=1).join(movie_data['genres'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('genres'))
+    
 counts_comedy = dict()
 counts_drama = dict()
 for row in movie_data.index:
@@ -392,7 +413,7 @@ for row in movie_data.index:
     if movie_data.loc[row]['release_date'].split('/')[0] == '6':
         if movie_data.loc[row]['genres'] == 'Comedy':
             counts_comedy[years] += 1
-            
+            ""
 for row in movie_data.index:
     years = movie_data.loc[row]['release_year']
     if years not in counts_drama:
@@ -400,7 +421,38 @@ for row in movie_data.index:
     if movie_data.loc[row]['release_date'].split('/')[0] == '6':
         if movie_data.loc[row]['genres'] == 'Drama':
             counts_drama[years] += 1
-            
+
+
+# In[184]:
+
+
+df_movies = movie_data['genres'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('genres')
+
+
+# In[197]:
+
+
+counts_comedy = dict()
+counts_drama = dict()
+for row in df_movies.index:
+    for genre in df_movies.loc[row]:
+        if 'Comedy' == genre:
+            movie_year = movie_data.loc[row]['release_year']
+            if movie_year not in counts_comedy:
+                counts_comedy[movie_year] = 1
+            else:
+                counts_comedy[movie_year] += 1
+        if 'Drama' == genre:
+            movie_year = movie_data.loc[row]['release_year']
+            if movie_year not in counts_drama:
+                counts_drama[movie_year] = 1
+            else:
+                counts_drama[movie_year] += 1
+
+
+# In[201]:
+
+
 comedy_counts = []
 drama_counts = []
 movie_years = np.arange(1968,2016,1)
@@ -411,7 +463,19 @@ for i in counts_drama:
     drama_counts.append(counts_drama[i])
 
 
-# In[100]:
+# In[207]:
+
+
+
+
+
+# In[204]:
+
+
+movie_years
+
+
+# In[202]:
 
 
 plt.figure(figsize=[15,5])
@@ -424,7 +488,5 @@ plt.subplot(1,2,2)
 plt.errorbar(x = movie_years,y = drama_counts)
 plt.xlim(1968,2020);
 
-
-#  没什么很明显的规律
 
 # > 注意: 当你写完了所有的代码，并且回答了所有的问题。你就可以把你的 iPython Notebook 导出成 HTML 文件。你可以在菜单栏，这样导出**File -> Download as -> HTML (.html)、Python (.py)** 把导出的 HTML、python文件 和这个 iPython notebook 一起提交给审阅者。
