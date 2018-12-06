@@ -37,7 +37,7 @@
 # 
 # 提示：记得使用 notebook 中的魔法指令 `%matplotlib inline`，否则会导致你接下来无法打印出图像。
 
-# In[192]:
+# In[87]:
 
 
 #导入所需的库
@@ -67,7 +67,7 @@ movie_data = pd.read_csv('C:/Users/zhang/Desktop/tmdb-movies.csv')
 # 
 # 
 
-# In[5]:
+# In[88]:
 
 
 #数据表的行列
@@ -83,7 +83,7 @@ display(movie_data.tail())
 display(movie_data.sample())
 
 
-# In[78]:
+# In[89]:
 
 
 #使用dtype查看各列的数据类型
@@ -91,14 +91,14 @@ for column in movie_data.columns:
     print("{}的数据类型是: {}".format(column,np.dtype(movie_data[column])))
 
 
-# In[79]:
+# In[90]:
 
 
 #True是存在缺失值，False是不存在缺失值
 print(movie_data.isnull().any())
 
 
-# In[80]:
+# In[91]:
 
 
 movie_data.describe()
@@ -112,7 +112,7 @@ movie_data.describe()
 # 
 # 任务：使用适当的方法来清理空值，并将得到的数据保存。
 
-# In[81]:
+# In[92]:
 
 
 #查看缺失值的数量
@@ -149,29 +149,23 @@ print("处理之后：\n",movie_data.isnull().sum())
 # 
 # 要求：每一个语句只能用一行代码实现。
 
-# In[6]:
+# In[93]:
 
 
 display(movie_data[['id','popularity','budget','runtime','vote_average']])
 
 
-# In[83]:
+# In[94]:
 
 
-#读取数据前20行的数据
-print(movie_data.head(20))
-
-#读取48和49行的数据
-print(movie_data.iloc[47])
-print("--------------------------")
-print(movie_data.iloc[48])
+display(movie_data.iloc[[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,47,48]])
 
 
-# In[84]:
+# In[95]:
 
 
 #读取50—60行的数据
-print(movie_data.iloc[49:60])
+display(movie_data.iloc[49:60])
 
 
 # ---
@@ -185,14 +179,14 @@ print(movie_data.iloc[49:60])
 # 
 # 要求：请使用 Logical Indexing实现。
 
-# In[85]:
+# In[96]:
 
 
 #获取popularity大于5的所有数据
 movie_data.loc[movie_data.popularity > 5]
 
 
-# In[86]:
+# In[97]:
 
 
 #获取popularity大于5且发行年份在1996年之后的所有数据
@@ -208,14 +202,14 @@ movie_data.loc[(movie_data.popularity > 5) & (movie_data.release_year > 1996)]
 # 
 # 要求：使用 `Groupby` 命令实现。
 
-# In[87]:
+# In[98]:
 
 
 #按年份分组，然后求票房的平均值
 print(movie_data.groupby('release_year').agg('mean')['revenue'])
 
 
-# In[88]:
+# In[99]:
 
 
 #按导演进行分组，然后降序显示平均知名度
@@ -241,7 +235,7 @@ movie_data.groupby('director').agg('mean').sort_values(by='popularity',ascending
 
 # **任务3.1：**对 `popularity` 最高的20名电影绘制其 `popularity` 值。
 
-# In[8]:
+# In[100]:
 
 
 #这部分内容是因为在生成图的时候总是出现字体的警告信息，所以查资料解决的方案
@@ -252,7 +246,7 @@ mpl.rcParams['font.family'] = ['serif']
 mpl.rcParams['font.serif'] = ['Times New Roman']
 
 
-# In[29]:
+# In[101]:
 
 
 #按popularity进行降序排列，然后获取前20名
@@ -268,9 +262,10 @@ plt.xticks(rotation=90)
 # ---
 # **任务3.2：**分析电影净利润（票房-成本）随着年份变化的情况，并简单进行分析。
 
-# In[52]:
+# In[105]:
 
 
+#方式一
 movie_data.sort_values(by='release_year',ascending=True,inplace=True)
 movie_counts = movie_data.release_year.value_counts()
 movie_data_years = movie_data.groupby('release_year').agg('sum')
@@ -285,72 +280,43 @@ plt.xlabel('years')
 plt.ylabel('Average revenue')
 
 
+# In[106]:
+
+
+#方式二
+plt.style.use('ggplot')
+_, axes = plt.subplots(2, 1, figsize=(10, 10))
+movie_data['profit'] = movie_data['revenue'] - movie_data['budget']
+target_data = movie_data.groupby('release_year')['profit'].agg(['mean', 'sum'])
+axes[0].errorbar(target_data.index, target_data['mean']);
+axes[1].errorbar(target_data.index, target_data['sum']);
+
+axes[0].set_ylabel('profit_mean')
+axes[1].set_ylabel('profit_sum')
+axes[1].set_xlabel('release_year')
+
+
 # ---
 # 
 # **[选做]任务3.3：**选择最多产的10位导演（电影数量最多的），绘制他们排行前3的三部电影的票房情况，并简要进行分析。
 
-# In[92]:
+# In[107]:
 
 
-#统计每个导演出现的次数
-Workaholic = dict()
-for row in movie_data.index:
-    director = movie_data.loc[row]['director']
-    if director not in Workaholic:
-        Workaholic[director] = 1
-    else:
-        Workaholic[director] += 1
-#对存储的导演字典进行排序
-Workaholic = sorted(Workaholic.items(),key = lambda x:x[1],reverse = True)
-
-
-# In[93]:
-
-
-Workaholic
-
-
-# 观察发现，第二名是nothing，这是因为director中含有缺失值，然后我用nothing填充的，所以需要将其删除，然后再获取前十名的数据
-
-# In[94]:
-
-
-#获取产能前10的导演数据
-del Workaholic[1]
-top10_directors = Workaholic[:10]
-
-
-# In[95]:
-
-
-top10_movies = dict()
-top3_movies = pd.DataFrame()
-for director in top10_directors:
-    director = director[0]
-    director_movies = movie_data.loc[movie_data.director == director]
-    director_movies.sort_values(by='revenue',ascending=False,inplace=True)
-    top3_movies = pd.concat([top3_movies,director_movies.iloc[:3]],axis=0,ignore_index=True)
-
-
-# In[96]:
-
-
-#使用箱线图分析数据
-base_color = sb.color_palette()[0]tmp = movie_data['director'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('director') 
+#因为有些电影会包含多个导演，所以需要先将导演拆分出来，更方便统计
+tmp = movie_data['director'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('director')
+#提炼出‘original_title’和‘revenue’数据，然后与tmp合并
 movie_data_split = movie_data[['original_title', 'revenue']].join(tmp)
-
-
-target_data = None
-## TODO:  整理target_data,  它有上面提到的三个维度
-
-## 作图, 将导演设为颜色维度hue, 达到分别作图的效果
-fig = plt.figure(figsize=(15, 6)) 
-ax = sb.barplot(data=target_data, x='original_title', y='revenue_adj', hue='director', dodge=False, palette="Set2")
-plt.xticks(rotation = 90)
-plt.ylabel('Revenue')
-plt.xlabel('Original Title')
-sb.boxplot(data = top3_movies,x = 'director',y = 'revenue',color=base_color);
-plt.xticks(rotation=90);
+#返回出产最多的前10位导演的索引
+directors_top10 = tmp.value_counts().nlargest(10).index
+#筛选出前10位导演，然后按照票房进行排序
+target_data = movie_data_split[movie_data_split['director'].isin(directors_top10)].sort_values('revenue', ascending=False)
+#作图，生成前10位导演票房最好的三部电影
+_, axes = plt.subplots(2, 5, figsize=(15, 12), sharey=True, tight_layout=True)
+for key, ax in zip(directors_top10, axes.flat):
+    target_data[target_data['director']==key].set_index('original_title')[:3].plot(kind='bar', ax=ax, legend=False) 
+    ax.set_ylabel('reveune')
+    ax.set_title(key)
 
 
 # 导演Steven Spielberg的票房是最好的，最低票房也比其他导演要好；另外Woody Allen和Brian De Palma导演的电影总体不好，处于低票房的位置
@@ -359,29 +325,20 @@ plt.xticks(rotation=90);
 # 
 # **[选做]任务3.4：**分析1968年~2015年六月电影的数量的变化。
 
-# In[97]:
+# In[108]:
 
 
-movie_data = movie_data.sort_values(by='release_year')
-movie_data = movie_data.loc[(movie_data.release_year >= 1968) & (movie_data.release_year <= 2015)]
-counts = dict()
-for row in movie_data.index:
-    years = movie_data.loc[row]['release_year']
-    if years not in counts:
-        counts[years] = 0
-    if movie_data.loc[row]['release_date'].split('/')[0] == '6':
-        counts[years] += 1
-movie_counts = []
-movie_years = np.arange(1968,2016,1)
-for i in counts:
-    movie_counts.append(counts[i])
+#基础色
+base_color = sb.color_palette()[0]
+#筛选年份
+movie_year = movie_data['release_year'].between(1968,2015)
 
+#筛选月份
+movie_june = pd.to_datetime(movie_data['release_date']).dt.month == 6
 
-# In[98]:
-
-
-plt.errorbar(x = movie_years,y = movie_counts)
-plt.xlim(1968,2020);
+#根据条件作图
+plt.figure(figsize=[18,5])
+sb.countplot(data=movie_data[movie_year&movie_june],x='release_year',color=base_color)
 
 
 # 从1968到1985年总体成上升趋势，之后开始下滑，直到1992年开始才开始有回升的趋势，然后从大概2000年开始，上升势头明显起来
@@ -390,103 +347,21 @@ plt.xlim(1968,2020);
 # 
 # **[选做]任务3.5：**分析1968年~2015年六月电影 `Comedy` 和 `Drama` 两类电影的数量的变化。
 
-# In[193]:
+# In[109]:
 
 
-record = []
-counts_comedy = dict()
-counts_drama = dict()
-
-for row in movie_data.index:
-    if movie_data.loc[row]['release_date'].split('/')[0] == '6':
-        record.append(row)
-
-movie_data = movie_data.loc[record]
-df_movies = movie_data.drop('genres', axis=1).join(movie_data['genres'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('genres'))
-    
-counts_comedy = dict()
-counts_drama = dict()
-for row in movie_data.index:
-    years = movie_data.loc[row]['release_year']
-    if years not in counts_comedy:
-        counts_comedy[years] = 0
-    if movie_data.loc[row]['release_date'].split('/')[0] == '6':
-        if movie_data.loc[row]['genres'] == 'Comedy':
-            counts_comedy[years] += 1
-            ""
-for row in movie_data.index:
-    years = movie_data.loc[row]['release_year']
-    if years not in counts_drama:
-        counts_drama[years] = 0
-    if movie_data.loc[row]['release_date'].split('/')[0] == '6':
-        if movie_data.loc[row]['genres'] == 'Drama':
-            counts_drama[years] += 1
-
-
-# In[184]:
-
-
-df_movies = movie_data['genres'].str.split('|', expand=True).stack().reset_index(level=1, drop=True).rename('genres')
-
-
-# In[197]:
-
-
-counts_comedy = dict()
-counts_drama = dict()
-for row in df_movies.index:
-    for genre in df_movies.loc[row]:
-        if 'Comedy' == genre:
-            movie_year = movie_data.loc[row]['release_year']
-            if movie_year not in counts_comedy:
-                counts_comedy[movie_year] = 1
-            else:
-                counts_comedy[movie_year] += 1
-        if 'Drama' == genre:
-            movie_year = movie_data.loc[row]['release_year']
-            if movie_year not in counts_drama:
-                counts_drama[movie_year] = 1
-            else:
-                counts_drama[movie_year] += 1
-
-
-# In[201]:
-
-
-comedy_counts = []
-drama_counts = []
-movie_years = np.arange(1968,2016,1)
-for i in counts_comedy:
-    comedy_counts.append(counts_comedy[i])
-
-for i in counts_drama:
-    drama_counts.append(counts_drama[i])
-
-
-# In[207]:
-
-
-
-
-
-# In[204]:
-
-
-movie_years
-
-
-# In[202]:
-
-
-plt.figure(figsize=[15,5])
-
-plt.subplot(1,2,1)
-plt.errorbar(x = movie_years,y = comedy_counts)
-plt.xlim(1968,2020);
-
-plt.subplot(1,2,2)
-plt.errorbar(x = movie_years,y = drama_counts)
-plt.xlim(1968,2020);
+#将‘genres’拆分出来
+movie_genres = movie_data.drop('genres',axis=1).join(movie_data['genres'].str.split('|',expand=True).stack().reset_index(level=1,drop=True).rename('genres'))
+#筛选年份
+movie_years = movie_genres['release_year'].between(1968,2015)
+#筛选月份
+movie_june = pd.to_datetime(movie_genres['release_date']).dt.month == 6
+#筛选电影类型
+movie_genre = movie_genres['genres'].isin(['Drama','Comedy'])
+#利用三个条件作图
+plt.figure(figsize=[18,5])
+sb.countplot(data=movie_genres[movie_years&movie_june&movie_genre],x='release_year',hue='genres');
+plt.xticks(rotation=90);
 
 
 # > 注意: 当你写完了所有的代码，并且回答了所有的问题。你就可以把你的 iPython Notebook 导出成 HTML 文件。你可以在菜单栏，这样导出**File -> Download as -> HTML (.html)、Python (.py)** 把导出的 HTML、python文件 和这个 iPython notebook 一起提交给审阅者。
